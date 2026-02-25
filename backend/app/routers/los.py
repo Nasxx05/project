@@ -2,28 +2,49 @@
 
 import io
 import logging
+import os
 from typing import Optional
 
 import pandas as pd
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
+from ..config import get_settings
 from ..database import get_db
-from ..models.database_models import Admission, Holiday, LOSPrediction
+from ..models.database_models import Admission, Holiday, LOSPrediction, ModelMetric
 from ..models.schemas import LOSPredictRequest, LOSPredictResponse, LOSStatisticsResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/los", tags=["los"])
+settings = get_settings()
 
 # Module-level model instance (lazy-loaded)
 _los_predictor = None
 
 
-def _get_predictor():
+def _get_predictor(db: Session = None):
     from ..ml.los_predictor import LOSPredictor
     global _los_predictor
-    if _los_predictor is None:
-        _los_predictor = LOSPredictor()
+    if _los_predictor is None or _los_predictor.model is None:
+        # Try to load the latest trained model from disk
+        if db is not None:
+            latest_metric = (
+                db.query(ModelMetric)
+                .filter(ModelMetric.model_name == "LOS_Predictor")
+                .order_by(ModelMetric.evaluation_date.desc())
+                .first()
+            )
+            if latest_metric:
+                model_path = os.path.join(
+                    settings.ml_models_path, f"los_{latest_metric.model_version}"
+                )
+                if os.path.exists(model_path):
+                    logger.info("Auto-loading LOS model version %s from disk", latest_metric.model_version)
+                    _los_predictor = LOSPredictor()
+                    _los_predictor.load_model(model_path)
+                    return _los_predictor
+        if _los_predictor is None:
+            _los_predictor = LOSPredictor()
     return _los_predictor
 
 
@@ -33,7 +54,7 @@ async def predict_los(
     db: Session = Depends(get_db),
 ):
     """Predict length of stay for a patient."""
-    predictor = _get_predictor()
+    predictor = _get_predictor(db)
     if predictor.model is None:
         raise HTTPException(
             status_code=400,
@@ -92,7 +113,7 @@ async def batch_predict_los(
     db: Session = Depends(get_db),
 ):
     """Upload CSV of patient characteristics and return LOS predictions."""
-    predictor = _get_predictor()
+    predictor = _get_predictor(db)
     if predictor.model is None:
         raise HTTPException(
             status_code=400,

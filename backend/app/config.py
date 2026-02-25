@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:changeme@db/hospital_forecasting"
 
     # ML Models
-    ml_models_path: str = "/app/ml_models"
+    ml_models_path: str = "./ml_models"
     default_forecast_days: int = 60
     default_ensemble_size: int = 50
 

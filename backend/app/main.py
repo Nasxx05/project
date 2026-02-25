@@ -24,8 +24,12 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown."""
     logger.info("Starting %s v%s", settings.app_name, settings.app_version)
-    init_db()
-    logger.info("Database tables initialized.")
+    try:
+        init_db()
+        logger.info("Database tables initialized.")
+    except Exception as e:
+        logger.error("Database initialization failed: %s", e)
+        logger.error("App will start but database features may be unavailable.")
     yield
     logger.info("Shutting down %s", settings.app_name)
 

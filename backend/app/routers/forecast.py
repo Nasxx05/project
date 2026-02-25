@@ -11,7 +11,6 @@ from sqlalchemy.orm import Session
 
 from ..config import get_settings
 from ..database import get_db
-from ..ml.narx_forecaster import NARXOccupancyForecaster
 from ..models.database_models import BedPrediction, Holiday, ModelMetric, Occupancy
 from ..models.schemas import (
     ForecastConfig,
@@ -26,10 +25,11 @@ router = APIRouter(prefix="/api/v1/forecast/bed", tags=["forecast"])
 settings = get_settings()
 
 # Module-level model instance (loaded on first use)
-_forecaster: Optional[NARXOccupancyForecaster] = None
+_forecaster = None
 
 
-def _get_forecaster() -> NARXOccupancyForecaster:
+def _get_forecaster():
+    from ..ml.narx_forecaster import NARXOccupancyForecaster
     global _forecaster
     if _forecaster is None:
         _forecaster = NARXOccupancyForecaster()
@@ -72,6 +72,7 @@ async def generate_forecast(
         ])
 
     # Configure model
+    from ..ml.narx_forecaster import NARXOccupancyForecaster
     config = request.model_config or ForecastConfig()
     forecaster = NARXOccupancyForecaster(config={
         "delay": config.delay,

@@ -9,18 +9,18 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..ml.los_predictor import LOSPredictor
 from ..models.database_models import Admission, Holiday, LOSPrediction
 from ..models.schemas import LOSPredictRequest, LOSPredictResponse, LOSStatisticsResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/los", tags=["los"])
 
-# Module-level model instance
-_los_predictor: Optional[LOSPredictor] = None
+# Module-level model instance (lazy-loaded)
+_los_predictor = None
 
 
-def _get_predictor() -> LOSPredictor:
+def _get_predictor():
+    from ..ml.los_predictor import LOSPredictor
     global _los_predictor
     if _los_predictor is None:
         _los_predictor = LOSPredictor()

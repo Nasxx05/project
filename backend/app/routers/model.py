@@ -11,8 +11,6 @@ from sqlalchemy.orm import Session
 
 from ..config import get_settings
 from ..database import get_db
-from ..ml.los_predictor import LOSPredictor
-from ..ml.narx_forecaster import NARXOccupancyForecaster
 from ..models.database_models import Admission, Holiday, ModelMetric, Occupancy
 from ..models.schemas import (
     LOSTrainRequest,
@@ -27,9 +25,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/model", tags=["model"])
 settings = get_settings()
 
-# Module-level model references
-_narx_model: Optional[NARXOccupancyForecaster] = None
-_los_model: Optional[LOSPredictor] = None
+# Module-level model references (lazy-loaded to avoid heavy imports at startup)
+_narx_model = None
+_los_model = None
 
 
 @router.post("/train/occupancy", response_model=TrainResponse)
@@ -74,6 +72,7 @@ async def train_occupancy_model(
         ])
 
     # Configure and train
+    from ..ml.narx_forecaster import NARXOccupancyForecaster
     hyper = request.hyperparameters or {}
     config = {
         "delay": hyper.get("delay", 2),
@@ -168,6 +167,7 @@ async def train_los_model(
         ])
 
     # Train
+    from ..ml.los_predictor import LOSPredictor
     predictor = LOSPredictor()
     result = predictor.train(
         admissions_df,
@@ -272,6 +272,7 @@ async def activate_model(model_id: str, db: Session = Depends(get_db)):
     model_name = metric.model_name
 
     if model_name == "NARX_Occupancy":
+        from ..ml.narx_forecaster import NARXOccupancyForecaster
         model_path = os.path.join(settings.ml_models_path, f"narx_{model_id}")
         if not os.path.exists(model_path):
             raise HTTPException(status_code=404, detail="Model files not found on disk.")
@@ -282,6 +283,7 @@ async def activate_model(model_id: str, db: Session = Depends(get_db)):
         model_path = os.path.join(settings.ml_models_path, f"los_{model_id}")
         if not os.path.exists(model_path):
             raise HTTPException(status_code=404, detail="Model files not found on disk.")
+        from ..ml.los_predictor import LOSPredictor
         _los_model = LOSPredictor()
         _los_model.load_model(model_path)
         from . import los as los_router

@@ -1,0 +1,9 @@
+{
+  "buildCommand": "cd frontend && npm install && CI=false NODE_OPTIONS=--openssl-legacy-provider react-scripts build",
+  "outputDirectory": "frontend/build",
+  "installCommand": "echo 'skip global install'",
+  "framework": null,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

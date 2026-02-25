@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = [
         "http://localhost:3000",
         "http://localhost:80",
+        "http://localhost:8000",
         "https://hospitalai-woad.vercel.app",
     ]
 

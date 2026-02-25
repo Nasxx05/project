@@ -243,12 +243,20 @@ async def list_models(db: Session = Depends(get_db)):
         .all()
     )
 
+    # Determine active model versions
+    active_narx_version = _narx_model.model_version if _narx_model is not None else None
+    active_los_version = _los_model.model_version if _los_model is not None else None
+
     models = [
         ModelListItem(
             name=m.model_name,
             version=m.model_version,
             created_at=m.evaluation_date.strftime("%Y-%m-%d %H:%M:%S"),
             metrics={"mae": m.mae, "mape": m.mape, "rmse": m.rmse},
+            is_active=(
+                (m.model_name == "NARX_Occupancy" and m.model_version == active_narx_version)
+                or (m.model_name == "LOS_Predictor" and m.model_version == active_los_version)
+            ),
         )
         for m in metrics
     ]

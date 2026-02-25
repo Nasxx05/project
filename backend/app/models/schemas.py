@@ -128,6 +128,7 @@ class ModelListItem(BaseModel):
     version: str
     created_at: str
     metrics: Optional[dict] = None
+    is_active: bool = False
 
 
 class ModelListResponse(BaseModel):

@@ -24,6 +24,8 @@ export default function ModelTraining() {
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
   const [models, setModels] = useState([]);
+  const [activating, setActivating] = useState(null);
+  const [success, setSuccess] = useState('');
 
   // Occupancy model params
   const [occStart, setOccStart] = useState('2020-01-01');
@@ -88,12 +90,17 @@ export default function ModelTraining() {
   };
 
   const handleActivate = async (modelId) => {
+    setActivating(modelId);
+    setSuccess('');
+    setError('');
     try {
-      await activateModel(modelId);
-      setError('');
+      const res = await activateModel(modelId);
+      setSuccess(res.data?.message || `Model ${modelId} activated successfully.`);
       listModels().then(r => setModels(r.data.models)).catch(() => {});
     } catch (err) {
       setError(err.response?.data?.detail || 'Activation failed.');
+    } finally {
+      setActivating(null);
     }
   };
 
@@ -123,9 +130,10 @@ export default function ModelTraining() {
       <Typography variant="h5" gutterBottom>Model Training</Typography>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Tabs value={tab} onChange={(_, v) => { setTab(v); setResult(null); setError(''); }}>
+        <Tabs value={tab} onChange={(_, v) => { setTab(v); setResult(null); setError(''); setSuccess(''); }}>
           <Tab label="Occupancy Model (NARX)" />
           <Tab label="LOS Model" />
         </Tabs>
@@ -256,7 +264,17 @@ export default function ModelTraining() {
                   <TableCell>{m.metrics?.mae?.toFixed(2) || '-'}</TableCell>
                   <TableCell>{m.metrics?.rmse?.toFixed(2) || '-'}</TableCell>
                   <TableCell>
-                    <Button size="small" onClick={() => handleActivate(m.version)}>Activate</Button>
+                    <Button
+                      size="small"
+                      variant={m.is_active ? "contained" : "outlined"}
+                      color={m.is_active ? "success" : "primary"}
+                      disabled={activating === m.version}
+                      onClick={() => handleActivate(m.version)}
+                    >
+                      {activating === m.version ? (
+                        <CircularProgress size={18} color="inherit" />
+                      ) : m.is_active ? 'Active' : 'Activate'}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

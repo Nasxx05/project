@@ -1,0 +1,9 @@
+{
+  "buildCommand": "CI=false NODE_OPTIONS=--openssl-legacy-provider react-scripts build",
+  "outputDirectory": "build",
+  "installCommand": "npm install",
+  "framework": "create-react-app",
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}

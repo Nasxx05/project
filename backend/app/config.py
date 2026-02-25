@@ -18,7 +18,11 @@ class Settings(BaseSettings):
     default_ensemble_size: int = 50
 
     # CORS
-    cors_origins: list[str] = ["http://localhost:3000", "http://localhost:80"]
+    cors_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:80",
+        "https://hospitalai-woad.vercel.app",
+    ]
 
     # Rate limiting
     rate_limit_per_minute: int = 60
